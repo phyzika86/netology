@@ -10,8 +10,18 @@ import (
 )
 
 func main() {
-	_ = ReadProcessWrite("error_input_file_path.txt", "error_output_file_path.txt", Process)
-	_ = ReadProcessWrite("input.txt", "output.txt", Process)
+	input := "error_input_file_path.txt"
+	output := "error_output_file_path.txt"
+	err := ReadProcessWrite(input, output, Process)
+	if err != nil {
+		log.Printf("Ошибка вызоыва функции  ReadProcessWrite для параметров %s %s", input, output)
+	}
+	input = "input.txt"
+	output = "output.txt"
+	err = ReadProcessWrite(input, output, Process)
+	if err != nil {
+		log.Printf("Ошибка вызоыва функции  ReadProcessWrite для параметров %s %s", input, output)
+	}
 }
 
 // CreateFile создает новый файл по указанному пути.
@@ -41,21 +51,40 @@ func ReadProcessWrite(inputPath string, outputPath string, process func(string) 
 	defer fileOut.Close()
 
 	writer := bufio.NewWriter(fileOut)
-	scanner := bufio.NewScanner(file)
+	// scanner := bufio.NewScanner(file)
 	defer writer.Flush()
 
-	for scanner.Scan() {
-		line := scanner.Text()
-		newLine, _ := process(line)
-		fmt.Println("Обработано:", line)
-		_, err := writer.WriteString(newLine + "\n")
-		if err != nil {
-			log.Println("Ошибка при записи строки в файл:", err)
-		}
+	// Построчное чтение файла
+	// for scanner.Scan() {
+	// 	line := scanner.Text()
+	// 	newLine, _ := Process(line)
+	// 	fmt.Println("Обработано:", line)
+	// 	_, err := writer.WriteString(newLine + "\n")
+	// 	if err != nil {
+	// 		log.Println("Ошибка при записи строки в файл:", err)
+	// 	}
+	// }
+
+	// if err = scanner.Err(); err != nil {
+	// 	return fmt.Errorf("ошибка чтения файла %s: %w", inputPath, err)
+	// }
+
+	// Читаем весь файл
+	content, err := os.ReadFile(inputPath)
+	if err != nil {
+		return fmt.Errorf("ошибка чтения файла %s: %w", inputPath, err)
 	}
 
-	if err = scanner.Err(); err != nil {
-		return fmt.Errorf("ошибка чтения файла %s: %w", inputPath, err)
+	// Преобразуем в строку и обрабатываем
+	text := string(content)
+	processedText, err := Process(text)
+	if err != nil {
+		return fmt.Errorf("ошибка обработки: %w", err)
+	}
+
+	_, err = writer.WriteString(processedText)
+	if err != nil {
+		return err
 	}
 
 	log.Printf("Успешно: %s → %s\n", inputPath, outputPath)
